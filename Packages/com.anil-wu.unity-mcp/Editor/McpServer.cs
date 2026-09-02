@@ -59,7 +59,7 @@ namespace UnityMcp
             public long deadlineMs;
         }
 
-        private sealed class PollResult
+        internal sealed class PollResult
         {
             public string text;
             public bool isError;
@@ -444,6 +444,22 @@ namespace UnityMcp
                 description = "截取游戏画面保存为 PNG（需在播放模式下）。",
                 inputSchema = Obj(("path", "输出文件绝对路径或相对项目根的路径")),
                 handler = CaptureScreenshot,
+            });
+
+            _tools.Add(new Tool
+            {
+                name = "run_tests",
+                description = "运行 Unity Test Framework 用例（v1 仅 EditMode）。返回通过/失败/跳过统计与失败详情。",
+                inputSchema = Obj(
+                    ("testNames", "可选：逗号分隔的测试全名过滤"),
+                    ("category", "可选：按分类过滤")
+                ),
+                handler = (args, job) =>
+                {
+                    var poll = McpTestRunner.Begin(args);
+                    if (poll == null) { Complete(job, McpTestRunner.LastError ?? "{\"error\":\"启动测试失败\"}", true); return; }
+                    RegisterPending(job, poll);
+                },
             });
         }
 
