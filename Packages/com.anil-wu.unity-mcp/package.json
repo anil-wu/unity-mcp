@@ -5,6 +5,9 @@
   "description": "Embedded MCP (Model Context Protocol) server for the Unity editor: JSON-RPC over HTTP to drive play-mode control, console logs, scene inspection, screenshots and test running for AI-assisted QA/acceptance. Targets Unity 2022.3 LTS (no built-in MCP).",
   "unity": "2022.3",
   "unityRelease": "62f3",
+  "dependencies": {
+    "com.unity.test-framework": "1.1.33"
+  },
   "author": {
     "name": "anil-wu"
   },
