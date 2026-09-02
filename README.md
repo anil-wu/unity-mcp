@@ -46,7 +46,7 @@ curl -X POST http://localhost:6400/mcp \
 
 ## 配套 skill
 
-AI 侧的调用封装见 [skill/](skill/)（pi skill：`unity-mcp.mjs` 客户端 + QA 工作流）。
+AI 侧的调用封装见 [unity-mcp-qa/](unity-mcp-qa/)（pi skill：`unity-mcp.mjs` 客户端 + QA 工作流）。
 
 ## License
 
