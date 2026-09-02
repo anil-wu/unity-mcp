@@ -16,7 +16,7 @@ node scripts/install-plugin.mjs <目标工程路径>                       # 默
 node scripts/install-plugin.mjs <目标工程路径> --source copy --plugin <插件文件夹路径>   # 本地拷贝
 ```
 
-2. **启动 Unity**（编辑器加载后 MCP server 自动监听 `http://localhost:6400`）：
+2. **启动 Unity**：
 
 ```bash
 node scripts/start-unity.mjs <目标工程路径>                          # 自动按版本找 Unity.exe
@@ -29,7 +29,9 @@ node scripts/start-unity.mjs <目标工程路径> --unity <Unity.exe路径>  # �
 node scripts/unity-mcp.mjs ping
 ```
 
-失败（连不上）→ 提示用户：Unity 未打开 / MCP 未启动；端口不同用 `UNITY_MCP_URL` 覆盖。
+失败（连不上）→ 提示用户：Unity 未打开 / MCP 未启动。
+
+**端口**：默认按工程路径自动推导（`config.json` 的 `port` 为基准 + hash%200，同一工程恒定、不同工程错开，避免多开 Unity 时冲突）；可用 `--port <N>` 或 `UNITY_MCP_PORT` 覆盖，`UNITY_MCP_URL` 为完整地址最高优先。改端口后需重启 Unity（`start-unity.mjs` 会把端口传给编辑器）。
 
 ## 命令速查
 

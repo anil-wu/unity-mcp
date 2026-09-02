@@ -19,6 +19,8 @@ namespace UnityMcp
     public static class McpServer
     {
         private const int DefaultPort = 6400;
+
+        private static readonly int _port = ReadPort();
         private const string ProtocolVersion = "2024-11-05";
         private const string ServerName = "unity-mcp";
         private const string ServerVersion = "0.1.0";
@@ -87,6 +89,14 @@ namespace UnityMcp
             StartListener();
         }
 
+        private static int ReadPort()
+        {
+            // 端口可配置：优先环境变量 UNITY_MCP_PORT（由 skill 的 start-unity.mjs 传入），否则默认 6400
+            var env = Environment.GetEnvironmentVariable("UNITY_MCP_PORT");
+            if (int.TryParse(env, out var p) && p > 0 && p < 65536) return p;
+            return DefaultPort;
+        }
+
         private static void CloseListener()
         {
             var l = _listener;
@@ -107,11 +117,11 @@ namespace UnityMcp
                     try
                     {
                         var l = new HttpListener();
-                        l.Prefixes.Add($"http://localhost:{DefaultPort}/");
-                        l.Prefixes.Add($"http://127.0.0.1:{DefaultPort}/");
+                        l.Prefixes.Add($"http://localhost:{_port}/");
+                        l.Prefixes.Add($"http://127.0.0.1:{_port}/");
                         l.Start();
                         _listener = l;
-                        Debug.Log($"[UnityMcp] MCP server 监听 http://localhost:{DefaultPort}/mcp");
+                        Debug.Log($"[UnityMcp] MCP server 监听 http://localhost:{_port}/mcp");
                         ListenLoop();
                         return;
                     }

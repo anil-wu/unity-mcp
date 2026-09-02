@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 启动 Unity 编辑器打开目标工程（编辑器加载后 MCP server 自动监听 6400）。
+ * 启动 Unity 编辑器打开目标工程（编辑器加载后 MCP server 自动监听按工程推导的端口）。
  * 用法: node start-unity.mjs <目标工程路径> [--unity <Unity.exe 路径>]
  * 自动按工程 ProjectVersion.txt 的版本在 Unity Hub 安装目录里找 Unity.exe。
  */
@@ -8,6 +8,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { spawn } from "node:child_process";
+import { loadConfig, projectPort } from "./config.mjs";
 
 function parseArgv(argv) {
 	const a = { _: [] };
@@ -77,11 +78,18 @@ function main() {
 		fail(`找不到 Unity.exe。请用 --unity <路径> 指定（例如 D:/Programs/Unity/${readVersion(targetRoot) || "2022.3.62f3"}/Editor/Unity.exe）`);
 	}
 
-	const child = spawn(unityExe, ["-projectPath", targetRoot], { detached: true, stdio: "ignore" });
+	const config = loadConfig();
+	const port = Number(process.env.UNITY_MCP_PORT) || projectPort(targetRoot, config.port);
+
+	const child = spawn(unityExe, ["-projectPath", targetRoot], {
+		detached: true,
+		stdio: "ignore",
+		env: { ...process.env, UNITY_MCP_PORT: String(port) },
+	});
 	child.unref();
 	console.log(`✓ 已启动 Unity: ${unityExe}`);
 	console.log(`  工程: ${targetRoot}`);
-	console.log(`  编辑器加载后 MCP server 监听 http://localhost:6400（用 unity-mcp.mjs ping 验证）`);
+	console.log(`  MCP server 端口: ${port}（由工程路径推导，多工程自动错开；可用 config.json 的 port 或 UNITY_MCP_PORT 覆盖）`);
 }
 
 main();

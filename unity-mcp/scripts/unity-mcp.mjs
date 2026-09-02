@@ -7,7 +7,18 @@
  * 用法见 SKILL.md，或运行 `node unity-mcp.mjs --help`。
  */
 
-const MCP_URL = process.env.UNITY_MCP_URL || "http://localhost:6400/mcp";
+import { loadConfig, projectPort } from "./config.mjs";
+
+const config = loadConfig();
+let MCP_URL = "http://localhost:6400/mcp";
+
+/** 解析连接地址：UNITY_MCP_URL（完整地址，最高优先）> --port / UNITY_MCP_PORT > 按工程路径推导 */
+function resolveMcpUrl(args) {
+	if (process.env.UNITY_MCP_URL) return process.env.UNITY_MCP_URL;
+	const p = args.port ?? process.env.UNITY_MCP_PORT;
+	const port = p ? Number(p) : projectPort(process.cwd(), config.port);
+	return `http://localhost:${port}/mcp`;
+}
 
 async function rpc(method, params) {
 	let res;
@@ -56,7 +67,7 @@ const help = `Unity MCP 客户端
   test [--testNames <a,b>] [--category <c>]  运行 EditMode 测试
   call <工具名> '<json 参数>'     通用工具调用
 
-环境变量: UNITY_MCP_URL（默认 http://localhost:6400/mcp）`;
+端口: 默认按工程路径推导（config.json 的 port 为基准 + hash%200，多工程自动错开）；可用 --port <N> 或 UNITY_MCP_PORT 覆盖；UNITY_MCP_URL 为完整地址（最高优先）`;
 
 function parseArgv(argv) {
 	const a = { _: [] };
@@ -76,6 +87,7 @@ function parseArgv(argv) {
 async function main() {
 	const a = parseArgv(process.argv.slice(2));
 	if (a.help || a._.length === 0) { out(help); return; }
+	MCP_URL = resolveMcpUrl(a);
 	const cmd = a._[0];
 
 	try {
