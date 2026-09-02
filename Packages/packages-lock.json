@@ -4,7 +4,9 @@
       "version": "file:com.anil-wu.unity-mcp",
       "depth": 0,
       "source": "embedded",
-      "dependencies": {}
+      "dependencies": {
+        "com.unity.test-framework": "1.1.33"
+      }
     },
     "com.unity.ext.nunit": {
       "version": "1.0.6",
