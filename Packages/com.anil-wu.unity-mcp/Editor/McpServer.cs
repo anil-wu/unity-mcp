@@ -351,7 +351,7 @@ namespace UnityMcp
                 inputSchema = Obj(("paused", "boolean 是否暂停")),
                 handler = (args, job) =>
                 {
-                    if (!EditorApplication.isPlaying) { Complete(job, JsonError("未在播放模式")); return; }
+                    if (!EditorApplication.isPlaying) { Complete(job, JsonError("未在播放模式"), true); return; }
                     var paused = GetBool(args, "paused", !EditorApplication.isPaused);
                     EditorApplication.isPaused = paused;
                     Complete(job, JsonResult(paused ? "paused" : "resumed"));
@@ -432,7 +432,7 @@ namespace UnityMcp
                 handler = (args, job) =>
                 {
                     var path = GetString(args, "path", null);
-                    if (string.IsNullOrEmpty(path)) { Complete(job, JsonError("缺少 path")); return; }
+                    if (string.IsNullOrEmpty(path)) { Complete(job, JsonError("缺少 path"), true); return; }
                     var ok = EditorApplication.ExecuteMenuItem(path);
                     Complete(job, MiniJson.Serialize(new Dictionary<string, object> { { "ok", ok } }), false);
                 },
@@ -519,7 +519,7 @@ namespace UnityMcp
 
         // ==================== 结果/响应辅助 ====================
 
-        private static void Complete(McpJob job, string text, bool isError)
+        private static void Complete(McpJob job, string text, bool isError = false)
         {
             job.response = BuildCallResult(job.id, text, isError);
             job.doneEvent.Set();
