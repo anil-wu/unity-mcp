@@ -50,6 +50,8 @@ const help = `Unity MCP 客户端
   play | pause | resume | stop    播放模式控制
   console [--level <级别>] [--count <N>]   拉取控制台日志（级别: Error/Warning/Log/Assert/Exception）
   scene                           只读场景信息
+  tree                            场景 GameObject 层级树
+  components --name <名称> | --path <路径>   查询某 GameObject 的组件
   screenshot --out <路径>         截取游戏画面保存为 PNG（需播放模式）
   test [--testNames <a,b>] [--category <c>]  运行 EditMode 测试
   call <工具名> '<json 参数>'     通用工具调用
@@ -103,6 +105,15 @@ async function main() {
 				return;
 			}
 			case "scene": out(await callTool("scene_info")); return;
+			case "tree": out(await callTool("scene_tree")); return;
+			case "components": {
+				const args = {};
+				if (a.name) args.name = a.name;
+				if (a.path) args.path = a.path;
+				if (!a.name && !a.path) { out("✗ 需要 --name 或 --path"); process.exitCode = 1; return; }
+				out(await callTool("get_components", args));
+				return;
+			}
 			case "screenshot": {
 				if (!a.out) { out("✗ 需要 --out <路径>"); process.exitCode = 1; return; }
 				out(await callTool("capture_screenshot", { path: a.out }));

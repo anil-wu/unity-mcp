@@ -40,6 +40,8 @@ node scripts/unity-mcp.mjs play                    # 进入播放模式
 node scripts/unity-mcp.mjs pause | resume | stop   # 暂停/恢复/退出
 node scripts/unity-mcp.mjs console --level Error   # 拉取控制台日志
 node scripts/unity-mcp.mjs scene                   # 只读场景信息
+node scripts/unity-mcp.mjs tree                    # 场景 GameObject 层级树
+node scripts/unity-mcp.mjs components --name Main Camera   # 查某对象的组件
 node scripts/unity-mcp.mjs screenshot --out docs/qa/screenshots/xxx.png
 node scripts/unity-mcp.mjs test --testNames "MyTests.Case1"
 node scripts/unity-mcp.mjs call <工具名> '<json>'  # 通用兜底

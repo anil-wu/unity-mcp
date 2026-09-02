@@ -426,6 +426,72 @@ namespace UnityMcp
 
             _tools.Add(new Tool
             {
+                name = "scene_tree",
+                description = "返回活动场景的完整 GameObject 层级树（名称/路径/active/tag/组件类型/子节点）。",
+                inputSchema = Obj(),
+                handler = (args, job) =>
+                {
+                    var scene = EditorSceneManager.GetActiveScene();
+                    var roots = new List<object>();
+                    if (scene.IsValid())
+                    {
+                        foreach (var go in scene.GetRootGameObjects())
+                        {
+                            roots.Add(BuildTreeNode(go.transform));
+                        }
+                    }
+                    Complete(job, MiniJson.Serialize(new Dictionary<string, object>
+                    {
+                        { "activeScene", scene.name },
+                        { "rootCount", roots.Count },
+                        { "tree", roots },
+                    }), false);
+                },
+            });
+
+            _tools.Add(new Tool
+            {
+                name = "get_components",
+                description = "查询场景树上一个 GameObject 的组件信息（按名称或路径定位）。",
+                inputSchema = Obj(
+                    ("name", "GameObject 名称"),
+                    ("path", "完整路径（如 /Main Camera/Child），与 name 二选一")
+                ),
+                handler = (args, job) =>
+                {
+                    var name = GetString(args, "name", null);
+                    var pathStr = GetString(args, "path", null);
+                    if (string.IsNullOrEmpty(name) && string.IsNullOrEmpty(pathStr))
+                    {
+                        Complete(job, JsonError("需要 name 或 path 之一"), true);
+                        return;
+                    }
+                    var go = FindGameObject(name, pathStr);
+                    if (go == null)
+                    {
+                        Complete(job, JsonError("未找到 GameObject（name=" + (name ?? "") + ", path=" + (pathStr ?? "") + "）"), true);
+                        return;
+                    }
+                    var comps = new List<object>();
+                    foreach (var c in go.GetComponents<Component>())
+                    {
+                        if (c == null) continue;
+                        var info = new Dictionary<string, object> { { "type", c.GetType().FullName } };
+                        if (c is Behaviour behaviour) info["enabled"] = behaviour.enabled;
+                        comps.Add(info);
+                    }
+                    Complete(job, MiniJson.Serialize(new Dictionary<string, object>
+                    {
+                        { "name", go.name },
+                        { "path", GetGameObjectPath(go.transform) },
+                        { "active", go.activeSelf },
+                        { "components", comps },
+                    }), false);
+                },
+            });
+
+            _tools.Add(new Tool
+            {
                 name = "execute_menu",
                 description = "执行编辑器菜单项（如 File/Save Project）。",
                 inputSchema = Obj(("path", "菜单路径，如 File/Save Project")),
@@ -515,6 +581,92 @@ namespace UnityMcp
                     isError = true,
                 };
             });
+        }
+
+        // ==================== 场景树 / 组件查询辅助 ====================
+
+        private static Dictionary<string, object> BuildTreeNode(Transform t)
+        {
+            var go = t.gameObject;
+            var node = new Dictionary<string, object>
+            {
+                { "name", go.name },
+                { "path", GetGameObjectPath(t) },
+                { "active", go.activeSelf },
+                { "tag", go.tag },
+                { "layer", go.layer },
+                { "components", GetComponentTypeNames(go) },
+            };
+            var children = new List<object>();
+            foreach (Transform child in t)
+            {
+                children.Add(BuildTreeNode(child));
+            }
+            node["children"] = children;
+            return node;
+        }
+
+        private static List<string> GetComponentTypeNames(GameObject go)
+        {
+            var names = new List<string>();
+            foreach (var c in go.GetComponents<Component>())
+            {
+                if (c != null) names.Add(c.GetType().Name);
+            }
+            return names;
+        }
+
+        private static string GetGameObjectPath(Transform t)
+        {
+            var parts = new List<string>();
+            while (t != null)
+            {
+                parts.Insert(0, t.name);
+                t = t.parent;
+            }
+            return "/" + string.Join("/", parts);
+        }
+
+        private static GameObject FindGameObject(string name, string pathStr)
+        {
+            var scene = EditorSceneManager.GetActiveScene();
+            if (!scene.IsValid()) return null;
+            foreach (var go in scene.GetRootGameObjects())
+            {
+                if (!string.IsNullOrEmpty(pathStr))
+                {
+                    var byPath = FindByPath(go.transform, pathStr);
+                    if (byPath != null) return byPath;
+                }
+                if (!string.IsNullOrEmpty(name))
+                {
+                    var byName = FindByName(go.transform, name);
+                    if (byName != null) return byName;
+                }
+            }
+            return null;
+        }
+
+        private static GameObject FindByPath(Transform t, string pathStr)
+        {
+            if (GetGameObjectPath(t) == pathStr) return t.gameObject;
+            foreach (Transform child in t)
+            {
+                var found = FindByPath(child, pathStr);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        private static GameObject FindByName(Transform t, string name)
+        {
+            if (t.name == name) return t.gameObject;
+            foreach (Transform child in t)
+            {
+                var found = FindByName(child, name);
+                if (found != null) return found;
+            }
+            return null;
         }
 
         // ==================== 结果/响应辅助 ====================
