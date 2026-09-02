@@ -25,7 +25,7 @@ namespace UnityMcp
         private const int RequestTimeoutMs = 30000;
         private const int MaxLogBuffer = 1000;
 
-        private static HttpListener _listener;
+        private static volatile HttpListener _listener;
         private static readonly object _jobsLock = new object();
         private static readonly Queue<McpJob> _jobs = new Queue<McpJob>();
         private static readonly List<PendingJob> _pendingJobs = new List<PendingJob>();
@@ -82,25 +82,48 @@ namespace UnityMcp
             RegisterTools();
             Application.logMessageReceived += OnLog;
             EditorApplication.update += Tick;
+            // 域重载（脚本重编译）时主动关闭监听，避免旧 HttpListener 占用端口导致新域绑定失败
+            AppDomain.CurrentDomain.DomainUnload += (_, _) => CloseListener();
             StartListener();
+        }
+
+        private static void CloseListener()
+        {
+            var l = _listener;
+            _listener = null;
+            if (l == null) return;
+            try { if (l.IsListening) l.Stop(); } catch { /* 忽略 */ }
+            try { l.Close(); } catch { /* 忽略 */ }
         }
 
         private static void StartListener()
         {
-            try
+            // 后台线程创建 + 退避重试：域重载后 http.sys 可能延迟释放端口，避免阻塞主线程
+            var thread = new Thread(() =>
             {
-                _listener = new HttpListener();
-                _listener.Prefixes.Add($"http://localhost:{DefaultPort}/");
-                _listener.Prefixes.Add($"http://127.0.0.1:{DefaultPort}/");
-                _listener.Start();
-                var thread = new Thread(ListenLoop) { IsBackground = true, Name = "UnityMcp-Listener" };
-                thread.Start();
-                Debug.Log($"[UnityMcp] MCP server 监听 http://localhost:{DefaultPort}/mcp");
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"[UnityMcp] 启动 HTTP 监听失败: {e.Message}");
-            }
+                for (var attempt = 0; attempt < 6; attempt++)
+                {
+                    if (_listener != null) return; // 已就绪或已关闭
+                    try
+                    {
+                        var l = new HttpListener();
+                        l.Prefixes.Add($"http://localhost:{DefaultPort}/");
+                        l.Prefixes.Add($"http://127.0.0.1:{DefaultPort}/");
+                        l.Start();
+                        _listener = l;
+                        Debug.Log($"[UnityMcp] MCP server 监听 http://localhost:{DefaultPort}/mcp");
+                        ListenLoop();
+                        return;
+                    }
+                    catch (Exception e)
+                    {
+                        if (attempt == 5) Debug.LogWarning($"[UnityMcp] 启动 HTTP 监听失败: {e.Message}");
+                        else Thread.Sleep(1000 * (attempt + 1));
+                    }
+                }
+            })
+            { IsBackground = true, Name = "UnityMcp-Listener" };
+            thread.Start();
         }
 
         private static void ListenLoop()
