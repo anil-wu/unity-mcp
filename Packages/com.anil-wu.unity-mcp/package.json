@@ -1,0 +1,19 @@
+{
+  "name": "com.anil-wu.unity-mcp",
+  "version": "0.1.0",
+  "displayName": "Unity MCP",
+  "description": "Embedded MCP (Model Context Protocol) server for the Unity editor: JSON-RPC over HTTP to drive play-mode control, console logs, scene inspection, screenshots and test running for AI-assisted QA/acceptance. Targets Unity 2022.2/2022.3 (no built-in MCP).",
+  "unity": "2022.2",
+  "unityRelease": "21f1",
+  "author": {
+    "name": "anil-wu"
+  },
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "editor",
+    "qa",
+    "testing",
+    "ai"
+  ]
+}
